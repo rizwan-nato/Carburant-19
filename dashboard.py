@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import os
 from update_data import update_data
 
 import geopy.distance
@@ -11,6 +12,10 @@ from streamlit_folium import folium_static
 import folium
 import branca
 
+st.title("Compratareur de station")
+
+BASE_CWD = os.getcwd()
+PATH_DATA = BASE_CWD + "/data"
 
 def get_close_station(lat, lon, row, distance):
     coord1 = (lat,lon)
@@ -22,15 +27,22 @@ def get_close_station(lat, lon, row, distance):
 
 @st.experimental_memo
 def load_data():
-    df = pd.read_csv("test.csv")
-    return df
+    df_instant = pd.read_csv(os.path.join(PATH_DATA, "instant.csv"), index_col="id")
+    return df_instant
 
-df = load_data()
+df_instant = load_data()
 
 
-genre = st.sidebar.radio(
+carburant = st.sidebar.radio(
      "Quel carburant voulez vous?",
-     ('SP95', 'SP95-E10', 'Gazoil', 'SP98'))
+     ('SP95-E10', 'Gazole', 'SP98'))
+
+if carburant == "SP95-E10":
+    suffixe = "E10"
+else:
+    suffixe = carburant
+ 
+df_instant[f"maj_{suffixe}"] = pd.to_datetime(df_instant[f"maj_{suffixe}"])
 
 rue = st.sidebar.text_input("Adresse", "35 Avenue de Stalingrad, Fresnes")
 
@@ -42,14 +54,14 @@ R = st.sidebar.number_input('Distance de recherche', value=5)
 lat = location.latitude
 lon = location.longitude
 
-station_to_plot = df.apply(lambda row: get_close_station(lat, lon, row, R), axis=1)
+station_to_plot = df_instant.apply(lambda row: get_close_station(lat, lon, row, R), axis=1)
 
 m = folium.Map(location=[lat, lon], zoom_start=13)
-folium.Marker([lat, lon]).add_to(m)
+folium.Marker([lat, lon], popup="Votre Position").add_to(m)
 min_prix = np.inf
 max_prix = -np.inf
-for index, row in df[station_to_plot].iterrows():
-    prix = row['prix_E10']
+for index, row in df_instant[station_to_plot].iterrows():
+    prix = row[f"prix_{suffixe}"]
     if prix < min_prix:
         min_prix = prix
     if prix > max_prix:
@@ -58,15 +70,41 @@ for index, row in df[station_to_plot].iterrows():
 colorscale = branca.colormap.StepColormap(colors=["green", "orange", "red", "darkred"], vmin=min_prix, vmax=max_prix)
 color_dict = {"#008000ff": "green", "#ffa500ff": "orange", "#ff0000ff": "red", "#8b0000ff": "darkred"}
 
-for index, row in df[station_to_plot].iterrows():
-    if not pd.isna(row['prix_E10']):
+for index, row in df_instant[station_to_plot].iterrows():
+    if not pd.isna(row[f'prix_{suffixe}']):
         lat_row = row["latitude"]
         lon_row = row["longitude"]
         folium.Marker(
             location=[lat_row, lon_row],
-            popup=f"{row['prix_E10']}€ \n{row['maj_E10']}",
-            icon=folium.Icon(color=color_dict[colorscale(row['prix_E10'])])
+            popup=f"{row[f'prix_{suffixe}']}€ \n{row[f'maj_{suffixe}']}",
+            icon=folium.Icon(color=color_dict[colorscale(row[f"prix_{suffixe}"])])
         ).add_to(m)
 folium_static(m)
 
-st.dataframe(df[station_to_plot][["adresse", "ville", "prix_E10", "maj_E10"]])
+
+colms = st.columns((2, 1, 1, 1, 1))
+fields = ["Adresse", 'Ville', f'Prix {carburant}', 'Dernière mise à jour']
+for col, field_name in zip(colms, fields):
+    # header
+    col.write(field_name)
+
+for x, iterrow in enumerate(df_instant[station_to_plot].sort_values(f"prix_{suffixe}", ascending=True).iterrows()):
+    index, row = iterrow
+    if not pd.isna(row[f'prix_{suffixe}']):
+        col1, col2, col3, col4, col5 = st.columns((2, 1, 1, 1, 1))
+        col1.write(row["adresse"])
+        col2.write(row["ville"])
+        col3.write(row[f"prix_{suffixe}"])
+        col4.write(row[f"maj_{suffixe}"])
+
+        button_type = "Voir l'historique"
+        button_phold = col5.empty()  # create a placeholder
+        do_action = button_phold.button(button_type, key=x)
+        if do_action:
+            st.write(f"Historique de la station {index} WIP")
+            chart_data = pd.DataFrame(
+                np.random.randn(20, 3),
+                columns=['a', 'b', 'c'])
+
+            st.line_chart(chart_data)
+            pass

@@ -54,12 +54,16 @@ def update_data():
             for prix in pdv.prix:
                 attrib_prix = prix.attrib
                 nom = attrib_prix["nom"]
-                new_row[f"maj_{nom}"] = attrib_prix["maj"]
+                new_row[f"maj_{nom}"] = pd.to_datetime(attrib_prix["maj"])
                 new_row[f"prix_{nom}"] = attrib_prix["valeur"]
         record.append(new_row)
 
     df_instant = pd.DataFrame.from_records(record)
-    df_instant.to_csv("test.csv")
+    df_instant.to_csv(os.path.join(PATH_DATA, "instant.csv"))
 
     print("Data updated")
     return
+
+
+if __name__ == "__main__":
+    update_data()
