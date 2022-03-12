@@ -11,6 +11,9 @@ from geopy.extra.rate_limiter import RateLimiter
 from streamlit_folium import folium_static
 import folium
 import branca
+from time import time
+
+update_data()
 
 st.title("Compratareur de station")
 

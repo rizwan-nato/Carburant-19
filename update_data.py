@@ -16,6 +16,12 @@ def update_data():
     PATH_DATA = BASE_CWD + "/data"
     PATH_TEMP = BASE_CWD + "/temp"
 
+    if os.path.exists(os.path.join(PATH_DATA, "instant.csv")):
+        last_update = os.path.getctime(os.path.join(PATH_DATA, "instant.csv"))
+        if time.time() - last_update < 600:
+            print("Not updating")
+            return
+
     if not os.path.exists(PATH_DATA):
         os.makedirs(PATH_DATA)
     if not os.path.exists(PATH_TEMP):
