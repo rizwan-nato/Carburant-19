@@ -1,0 +1,3 @@
+[submodule "streamlit_analytics"]
+	path = streamlit_analytics
+	url = https://github.com/rizwan-nato/streamlit-analytics.git
