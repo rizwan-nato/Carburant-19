@@ -51,7 +51,7 @@ with streamlit_analytics.track():
     
     df_instant[f"maj_{suffixe}"] = pd.to_datetime(df_instant[f"maj_{suffixe}"])
 
-    rue = st.sidebar.text_input("Adresse", "35 Avenue de Stalingrad, Fresnes")
+    rue = st.sidebar.text_input("Adresse", "Antony")
 
     geolocator = Nominatim(user_agent="GTA Lookup")
     geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
@@ -64,7 +64,7 @@ with streamlit_analytics.track():
     station_to_plot = df_instant.apply(lambda row: get_close_station(lat, lon, row, R), axis=1)
 
     m = folium.Map(location=[lat, lon], zoom_start=13)
-    folium.Marker([lat, lon], popup="Votre Position").add_to(m)
+    folium.Marker([lat, lon], popup=rue).add_to(m)
     min_prix = np.inf
     max_prix = -np.inf
     for index, row in df_instant[station_to_plot].iterrows():
