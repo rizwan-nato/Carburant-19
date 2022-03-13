@@ -10,5 +10,6 @@ Les données sont issus des des données publiques des prix des carburants. Un a
 
 Toute aide est bienvenue. Si vous avez des suggestions de modifications, n'hésitez pas à en parler.
 
-- [ ] Proposer une localisation de l'utilisateur.
+- [ ] Corriger l'affichage du bouton localisation pour le thème dark
+- [ ] Rendre plus simple le passage de la recherche par sa localisation puis une adresse.
 - [ ] Corriger l'affichage de la liste des stations sur téléphone. 
