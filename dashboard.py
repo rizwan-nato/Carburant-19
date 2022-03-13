@@ -15,6 +15,9 @@ from time import time
 import streamlit_analytics.streamlit_analytics as streamlit_analytics
 import pickle
 import altair as alt
+from bokeh.models.widgets import Button
+from bokeh.models import CustomJS
+from streamlit_bokeh_events import streamlit_bokeh_events
 
 with streamlit_analytics.track():
 
@@ -22,7 +25,8 @@ with streamlit_analytics.track():
     update_data_instant()
     update_data_anual()
 
-    st.title("Compratareur de station")
+    st.title("Comparateur de station")
+  
     st.write("Où sont les stations essence les moins chères autour de vous ? Voici une carte mise à jour quotidiennement. Choisissez le type de carburant recherché, l'adresse ainsi la distance de recherche dans les filtres.")
     BASE_CWD = os.getcwd()
     PATH_DATA = BASE_CWD + "/data"
@@ -56,20 +60,51 @@ with streamlit_analytics.track():
     with open(os.path.join(PATH_DATA, suffixe), 'rb') as fp:
         data_year = pickle.load(fp)
 
-    rue = st.sidebar.text_input("Adresse", "Antony")
+    mode = st.sidebar.select_slider("Comment vous localiser?", options=["Adresse", "Localisation"], value="Localisation")
 
+    rue = st.sidebar.text_input("Adresse", "Antony")
     geolocator = Nominatim(user_agent="GTA Lookup")
     geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
     location = geolocator.geocode(f"{rue}, France")
-    R = st.sidebar.number_input('Distance de recherche', value=5)
+    if location is None:
+        location = geolocator.geocode(f"Paris, France")
+        rue = 'Paris'
+        st.sidebar.write("Erreur: Adresse non trouvée")
+    R = st.sidebar.number_input('Distance de recherche (Km)', value=5)
+    loc_button = Button(label="Me localiser", button_type="primary")
+    loc_button.js_on_event(
+        "button_click",
+        CustomJS(
+            code="""
+        navigator.geolocation.getCurrentPosition(
+            (loc) => {
+                document.dispatchEvent(new CustomEvent("GET_LOCATION", {detail: {lat: loc.coords.latitude, lon: loc.coords.longitude}}))
+            }
+        )
+        """
+        ),
+    )
+    
+    result = streamlit_bokeh_events(
+    loc_button,
+    events="GET_LOCATION",
+    key="get_location",
+    refresh_on_update=False,
+    override_height=75,
+    debounce_time=0,)
 
-    lat = location.latitude
-    lon = location.longitude
+    if result and "GET_LOCATION" in result and mode == "Localisation":
+            loc = result.get("GET_LOCATION")
+            lat = loc.get("lat")
+            lon = loc.get("lon")
+    else:
+        lat = location.latitude
+        lon = location.longitude
 
     station_to_plot = df_instant.apply(lambda row: get_close_station(lat, lon, row, R), axis=1)
 
     m = folium.Map(location=[lat, lon], zoom_start=13)
-    folium.Marker([lat, lon], popup=rue).add_to(m)
+    folium.Marker([lat, lon], tooltip=rue).add_to(m)
     min_prix = np.inf
     max_prix = -np.inf
     for index, row in df_instant[station_to_plot].iterrows():
@@ -80,16 +115,31 @@ with streamlit_analytics.track():
             max_prix = prix
 
     colorscale = branca.colormap.StepColormap(colors=["green", "orange", "red", "darkred"], vmin=min_prix, vmax=max_prix)
+    colorscale.add_to(m)
     color_dict = {"#008000ff": "green", "#ffa500ff": "orange", "#ff0000ff": "red", "#8b0000ff": "darkred"}
 
     for index, row in df_instant[station_to_plot].iterrows():
         if not pd.isna(row[f'prix_{suffixe}']):
             lat_row = row["latitude"]
             lon_row = row["longitude"]
+            adresse = row["adresse"]
+            ville = row["ville"]
+            T,P = data_year[str(index)]
+            T = pd.DataFrame(T, columns=["Date"])
+            P = pd.DataFrame(P, columns=[f"Prix"])
+            chart_data = pd.concat([T,P], axis=1)
+            c = alt.Chart(chart_data).mark_line().encode(
+                x='Date', 
+                y=alt.Y("Prix", scale=alt.Scale(zero=False))
+            ).properties(
+            title="Historique du prix",
+            )
+
             folium.Marker(
                 location=[lat_row, lon_row],
-                popup=f"{row[f'prix_{suffixe}']}€ \n{row[f'maj_{suffixe}']}",
-                icon=folium.Icon(color=color_dict[colorscale(row[f"prix_{suffixe}"])])
+                tooltip= f"<b>{row[f'prix_{suffixe}']}€</b><br><br>{adresse}<br><br>{ville}",
+                icon=folium.Icon(color=color_dict[colorscale(row[f"prix_{suffixe}"])]),
+                popup=folium.Popup(max_width=450).add_child(folium.VegaLite(c))
             ).add_to(m)
     folium_static(m)
 
