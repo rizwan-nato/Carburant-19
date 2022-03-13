@@ -60,8 +60,9 @@ with streamlit_analytics.track():
     with open(os.path.join(PATH_DATA, suffixe), 'rb') as fp:
         data_year = pickle.load(fp)
 
-    rue = st.sidebar.text_input("Adresse", "Antony")
+    mode = st.sidebar.select_slider("Comment vous localiser?", options=["Adresse", "Localisation"], value="Localisation")
 
+    rue = st.sidebar.text_input("Adresse", "Antony")
     geolocator = Nominatim(user_agent="GTA Lookup")
     geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
     location = geolocator.geocode(f"{rue}, France")
@@ -93,7 +94,7 @@ with streamlit_analytics.track():
     debounce_time=0,)
 
     if result:
-        if "GET_LOCATION" in result:
+        if "GET_LOCATION" in result and mode == "Localisation":
             loc = result.get("GET_LOCATION")
             lat = loc.get("lat")
             lon = loc.get("lon")
