@@ -93,8 +93,7 @@ with streamlit_analytics.track():
     override_height=75,
     debounce_time=0,)
 
-    if result:
-        if "GET_LOCATION" in result and mode == "Localisation":
+    if result and "GET_LOCATION" in result and mode == "Localisation":
             loc = result.get("GET_LOCATION")
             lat = loc.get("lat")
             lon = loc.get("lon")
