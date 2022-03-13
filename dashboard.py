@@ -24,34 +24,6 @@ with streamlit_analytics.track():
 
     update_data_instant()
     update_data_anual()
-    loc_button = Button(label="Get Device Location", max_width=150)
-    loc_button.js_on_event(
-        "button_click",
-        CustomJS(
-            code="""
-        navigator.geolocation.getCurrentPosition(
-            (loc) => {
-                document.dispatchEvent(new CustomEvent("GET_LOCATION", {detail: {lat: loc.coords.latitude, lon: loc.coords.longitude}}))
-            }
-        )
-        """
-        ),
-    )
-    result = streamlit_bokeh_events(
-        loc_button,
-        events="GET_LOCATION",
-        key="get_location",
-        refresh_on_update=False,
-        override_height=75,
-        debounce_time=0,
-    )
-
-    if result:
-        if "GET_LOCATION" in result:
-            loc = result.get("GET_LOCATION")
-            lat = loc.get("lat")
-            lon = loc.get("lon")
-            st.write(f"Lat, Lon: {lat}, {lon}")
 
     st.title("Comparateur de station")
   
@@ -98,9 +70,36 @@ with streamlit_analytics.track():
         rue = 'Paris'
         st.sidebar.write("Erreur: Adresse non trouvée")
     R = st.sidebar.number_input('Distance de recherche (Km)', value=5)
+    loc_button = Button(label="Me localiser", button_type="primary")
+    loc_button.js_on_event(
+        "button_click",
+        CustomJS(
+            code="""
+        navigator.geolocation.getCurrentPosition(
+            (loc) => {
+                document.dispatchEvent(new CustomEvent("GET_LOCATION", {detail: {lat: loc.coords.latitude, lon: loc.coords.longitude}}))
+            }
+        )
+        """
+        ),
+    )
+    
+    result = streamlit_bokeh_events(
+    loc_button,
+    events="GET_LOCATION",
+    key="get_location",
+    refresh_on_update=False,
+    override_height=75,
+    debounce_time=0,)
 
-    lat = location.latitude
-    lon = location.longitude
+    if result:
+        if "GET_LOCATION" in result:
+            loc = result.get("GET_LOCATION")
+            lat = loc.get("lat")
+            lon = loc.get("lon")
+    else:
+        lat = location.latitude
+        lon = location.longitude
 
     station_to_plot = df_instant.apply(lambda row: get_close_station(lat, lon, row, R), axis=1)
 
