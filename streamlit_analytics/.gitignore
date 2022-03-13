@@ -1,9 +1,7 @@
-#Data
-*.xml
-*.zip
-*.csv
-data/
-temps/
+firestore-key.json
+results.json
+.vscode
+streamlit_analytics/playground.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
