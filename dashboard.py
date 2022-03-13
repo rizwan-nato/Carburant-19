@@ -23,7 +23,7 @@ with streamlit_analytics.track():
     update_data_anual()
 
     st.title("Compratareur de station")
-
+    st.write("Où sont les stations essence les moins chères autour de vous ? Voici une carte mise à jour quotidiennement. Choisissez le type de carburant recherché, l'adresse ainsi la distance de recherche dans les filtres.")
     BASE_CWD = os.getcwd()
     PATH_DATA = BASE_CWD + "/data"
 
@@ -45,7 +45,7 @@ with streamlit_analytics.track():
 
     carburant = st.sidebar.radio(
         "Quel carburant voulez vous?",
-        ('SP95-E10', 'Gazole', 'SP98'))
+        ('SP95-E10', 'Gazole', 'SP98','GPLc', 'E85'))
 
     if carburant == "SP95-E10":
         suffixe = "E10"
@@ -125,4 +125,7 @@ with streamlit_analytics.track():
 
                 st.altair_chart(c.interactive(), use_container_width=True)
                 pass
+
+    st.write("Les données sont issus des des données publiques des prix des carburants. Un arrêté ministériel en date du 12 décembre 2006 modifié par un arrêté en date du 7 avril 2009 rend obligatoire la déclaration des prix pratiqués pour tout gérant de point de vente de carburants ayant vendu au moins 500 mètres cube des carburants SP95, gazole, E85, GPLC, SP95-E10, SP98. Le non respect de cette obligation est passible d'une amende, le contrôle des prix étant effectué par la DGCCRF.")
+
 
