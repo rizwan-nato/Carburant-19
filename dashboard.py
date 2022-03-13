@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
-from update_data import update_data
+from update_data import update_data_instant, update_data_anual
 
 import geopy.distance
 from geopy.geocoders import Nominatim
@@ -13,11 +13,14 @@ import folium
 import branca
 from time import time
 import streamlit_analytics.streamlit_analytics as streamlit_analytics
+import pickle
+import altair as alt
 
 with streamlit_analytics.track():
 
 
-    update_data()
+    update_data_instant()
+    update_data_anual()
 
     st.title("Compratareur de station")
 
@@ -50,6 +53,8 @@ with streamlit_analytics.track():
         suffixe = carburant
     
     df_instant[f"maj_{suffixe}"] = pd.to_datetime(df_instant[f"maj_{suffixe}"])
+    with open(os.path.join(PATH_DATA, suffixe), 'rb') as fp:
+        data_year = pickle.load(fp)
 
     rue = st.sidebar.text_input("Adresse", "Antony")
 
@@ -108,11 +113,16 @@ with streamlit_analytics.track():
             button_phold = col5.empty()  # create a placeholder
             do_action = button_phold.button(button_type, key=x)
             if do_action:
-                st.write(f"Historique de la station {index} WIP")
-                chart_data = pd.DataFrame(
-                    np.random.randn(20, 3),
-                    columns=['a', 'b', 'c'])
+                st.write(f"Historique de prix de la station")
+                T,P = data_year[str(index)]
+                T = pd.DataFrame(T, columns=["Date"])
+                P = pd.DataFrame(P, columns=[f"Prix"])
+                chart_data = pd.concat([T,P], axis=1)
+                c = alt.Chart(chart_data).mark_line().encode(
+                    x='Date', 
+                    y=alt.Y("Prix", scale=alt.Scale(zero=False))
+                )
 
-                st.line_chart(chart_data)
+                st.altair_chart(c.interactive(), use_container_width=True)
                 pass
 
