@@ -22,7 +22,7 @@ with streamlit_analytics.track():
     update_data_instant()
     update_data_anual()
 
-    st.title("Compratareur de station")
+    st.title("Comparateur de station")
     st.write("Où sont les stations essence les moins chères autour de vous ? Voici une carte mise à jour quotidiennement. Choisissez le type de carburant recherché, l'adresse ainsi la distance de recherche dans les filtres.")
     BASE_CWD = os.getcwd()
     PATH_DATA = BASE_CWD + "/data"
@@ -61,7 +61,11 @@ with streamlit_analytics.track():
     geolocator = Nominatim(user_agent="GTA Lookup")
     geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
     location = geolocator.geocode(f"{rue}, France")
-    R = st.sidebar.number_input('Distance de recherche', value=5)
+    if location is None:
+        location = geolocator.geocode(f"Paris, France")
+        rue = 'Paris'
+        st.sidebar.write("Erreur: Adresse non trouvée")
+    R = st.sidebar.number_input('Distance de recherche (Km)', value=5)
 
     lat = location.latitude
     lon = location.longitude
@@ -69,7 +73,7 @@ with streamlit_analytics.track():
     station_to_plot = df_instant.apply(lambda row: get_close_station(lat, lon, row, R), axis=1)
 
     m = folium.Map(location=[lat, lon], zoom_start=13)
-    folium.Marker([lat, lon], popup=rue).add_to(m)
+    folium.Marker([lat, lon], tooltip=rue).add_to(m)
     min_prix = np.inf
     max_prix = -np.inf
     for index, row in df_instant[station_to_plot].iterrows():
@@ -80,16 +84,31 @@ with streamlit_analytics.track():
             max_prix = prix
 
     colorscale = branca.colormap.StepColormap(colors=["green", "orange", "red", "darkred"], vmin=min_prix, vmax=max_prix)
+    colorscale.add_to(m)
     color_dict = {"#008000ff": "green", "#ffa500ff": "orange", "#ff0000ff": "red", "#8b0000ff": "darkred"}
 
     for index, row in df_instant[station_to_plot].iterrows():
         if not pd.isna(row[f'prix_{suffixe}']):
             lat_row = row["latitude"]
             lon_row = row["longitude"]
+            adresse = row["adresse"]
+            ville = row["ville"]
+            T,P = data_year[str(index)]
+            T = pd.DataFrame(T, columns=["Date"])
+            P = pd.DataFrame(P, columns=[f"Prix"])
+            chart_data = pd.concat([T,P], axis=1)
+            c = alt.Chart(chart_data).mark_line().encode(
+                x='Date', 
+                y=alt.Y("Prix", scale=alt.Scale(zero=False))
+            ).properties(
+            title="Historique du prix",
+            )
+
             folium.Marker(
                 location=[lat_row, lon_row],
-                popup=f"{row[f'prix_{suffixe}']}€ \n{row[f'maj_{suffixe}']}",
-                icon=folium.Icon(color=color_dict[colorscale(row[f"prix_{suffixe}"])])
+                tooltip= f"<b>{row[f'prix_{suffixe}']}€</b><br><br>{adresse}<br><br>{ville}",
+                icon=folium.Icon(color=color_dict[colorscale(row[f"prix_{suffixe}"])]),
+                popup=folium.Popup(max_width=450).add_child(folium.VegaLite(c))
             ).add_to(m)
     folium_static(m)
 
