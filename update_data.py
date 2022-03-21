@@ -53,8 +53,12 @@ def update_data_instant():
         new_row = {}
         attrib_pdv = pdv.attrib
         new_row["id"] = attrib_pdv["id"]
-        new_row["latitude"] = float(attrib_pdv["latitude"])/100000
-        new_row["longitude"] = float(attrib_pdv["longitude"])/100000
+        try:
+            new_row["latitude"] = float(attrib_pdv["latitude"])/100000
+            new_row["longitude"] = float(attrib_pdv["longitude"])/100000
+        except:
+            print(attrib_pdv)
+            continue
         new_row["cp"] = attrib_pdv["cp"]
         new_row["pop"] = attrib_pdv["pop"]
         new_row["adresse"] = pdv.adresse.text
