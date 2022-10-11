@@ -18,4 +18,6 @@ Toute aide est bienvenue. Si vous avez des suggestions de modifications, n'hési
 
 ## To run
 
-''python -m streamlit run dashboard.py''
+```
+python -m streamlit run dashboard.py
+```
